@@ -1,11 +1,12 @@
 [mysqld]
 
 user		= mysql
-socket		= /var/run/mysqld/mysqld-#X#.sock
+socket		= %BASE%/sockets/mysqld-%X%.sock
 port		= 3310
 basedir		= /usr
-datadir		= /var/lib/mysql-#X#
-tmpdir		= /tmp/mysql-#X#
+datadir		= %BASE%/data/mysql-%X%
+tmpdir		= %BASE%/tmp/mysql-%X%
+
 skip-external-locking
 bind-address		= 0.0.0.0
 key_buffer		= 16M
@@ -20,21 +21,19 @@ max_connections        = 100
 query_cache_limit	= 1M
 query_cache_size        = 16M
 # * Logging and Replication
-log_error                = /var/log/mysql/#X#-error.log
+log_error                = %BASE%/log/%X%-error.log
 
-server-id   = #PORT#
-log_bin     = /var/lib/mysql-#X#/#X#_side_bin.log
+server-id   = %PORT%
+log_bin     = %BASE%/data/mysql-%X%/%X%_side_bin.log
 expire_logs_days = 10
 max_binlog_size = 100M
 binlog-ignore-db=mysql            
 binlog-ignore-db=test
 skip-slave-start = true
-report-host=aside.local
-
-master-host = 127.0.0.1
-master-user = ripley
-master-password = slavepassword
-master-port = #PORT#
+report-host=%X%side.local
 
 
-
+master-host = %MASTERHOST%
+master-user = %MASTERUSER%
+master-password = %MASTERPASS%
+master-port = %MASTERPORT%

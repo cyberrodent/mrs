@@ -1,25 +1,67 @@
 #!/bin/bash
 
-DBCONF=/etc/mysql/my-a-side.cnf
-TEMPLATE="/etc/mysql/my-x-side.cnf"
-DBSERVER="mysql-a"
-DBPORT=3310
+TEMPLATE="`pwd`/my-x-side.cnf"
+echo "loaded template $TEMPLATE"
 
+BASEDIR=/opt/mysqlrplay
+ESCAPEBASEDIR="\/opt\/mysqlrplay"
 REPLUSER="ripley"
-REPLPASS="replicate"
-
+REPLPASS="r3p1icate"
+#
+# Where is the mysqld binary
 DBBIN=/usr/sbin/mysqld
+
+#
+# App layout
+#
+
+# BIN_BASE is where the startup scripts will be installed.
+#  so you end up with
+# $BASEDIR/bin/start-a.sh
+# $BASEDIR/bin/start-b.sh
+BIN_BASE=$BASEDIR/bin 
+
+# CONF_DIR is where the configuration files will be installed
+# $BASEDIR/etc/my-a.cnf
+# $BASEDIR/etc/my-b.cnf
+CONF_DIR=$BASEDIR/etc
+
+# DATA_BASE us where the data for all databases go
+#  so you end up with
+# $BASEDIR/data/mysql-a/
+# $BASEDIR/data/mysql-b/
+DATA_DIR=$BASEDIR/data
+
+# LOG_BASE base dir for logs from all configuration
+#  so you end up with
+# $BASEDIR/log/my-a.log
+# $BASEDIR/log/my-a-slow.log
+LOG_BASE=$BASEDIR/log
+
+# SOCK_BASE is where sockets will be stores
+#  something like
+# $BASEDIR/socket/my-a.sock
+# $BASEDIR/socket/my-b.sock
+SOCK_BASE=$BASEDIR/socket
+
+# each mysql sometimes needs some tmp. subdirs like:
+# $BASEDIR/tmp/my-a/
+# $BASEDIR/tmp/my-b/
+TMP_BASE=$BASEDIR/tmp
+
+mkdir -p $CONF_DIR $DATA_DIR $LOG_BASE $SOCK_BASE $BIN_BASE
 
 function SetupReplicant {
 
     X=$1
-    DBSERVER="mysql=$1"
     DBPORT=$2
-    DBCONF=/etc/mysql/my-$1-rendered.cnf
+    DBSERVER="mysql-$1"
+    DBCONF=$CONF_DIR/my-$1.cnf
     DBHOST="127.0.0.1"
-
-    OUT="/etc/mysql/my-$3-rendered.cnf"
-
+    MASTERHOST="127.0.0.1"
+    MASTERPORT=$3
+    MASTERUSER=$REPLUSER
+    MASTERPASS=$REPLPASS
     MYSQLCMD="/usr/bin/mysql -u root -h $DBHOST -P $DBPORT -e"
     MYSQLADM="/usr/bin/mysqladmin -u root -h $DBHOST -P $DBPORT"
 
@@ -27,25 +69,39 @@ function SetupReplicant {
     echo "Starting setup for $DBSERVER"
     echo
 
-    # Create the configuratio file for this mysql
-    sed -e 's/#X#/'${X}'/g' \
-        -e 's/#PORT#/'${DBPORT}'/g' \
-        < $TEMPLATE > $DBCONF
+    echo "Creating config $DBCONF:"
+    TMPCONF=$BASEDIR/_tmp_conf
+    rm -r $TMPCONF
+    # Create the configuration file for this mysql
+    cp $TEMPLATE $TMPCONF
+    perl -pi -e 's/%X%/'${X}'/g'  $TMPCONF;
+    perl -pi -e 's/%PORT%/'${DBPORT}'/g'  $TMPCONF;
+    perl -pi -e 's/%BASE%/'${ESCAPEBASEDIR}'/g'  $TMPCONF;
+    perl -pi -e 's/%MASTERHOST%/'${MASTERHOST}'/g'  $TMPCONF;
+    perl -pi -e 's/%MASTERUSER%/'${MASTERUSER}'/g' $TMPCONF;
+    perl -pi -e 's/%MASTERPASS%/'${MASTERPASS}'/g' $TMPCONF;
+    perl -pi -e 's/%MASTERPORT%/'${MASTERPORT}'/g' $TMPCONF;
+    cp $TMPCONF $DBCONF
+
+
 
 
     # Create data directory
-    DATADIR=/var/lib/$DBSERVER
-    rm -rf $DATADIR
-    mkdir -p /var/lib/$DATADIR
-    chown mysql:mysql /var/lib/$DATADIR
-    chmod 0700 /var/lib/$DATADIR
+    DATADIR=$DATA_DIR/$DBSERVER
+    sudo rm -fr $DATADIR
+    mkdir -p $DATADIR
+    sudo chown mysql:mysql $DATADIR
+    sudo chmod 0700 $DATADIR
+
+    
     # Install database
     echo "Running mysql_install_db."
-    mysql_install_db --user=mysql --datadir=$DATADIR 1>/dev/null
-    
+    sudo mysql_install_db --defaults_file=$DBCONF --user=mysql --datadir=$DATADIR 
+    #1>/dev/null
+   
     # start the server
     echo "Starting the server."
-    exec $DBBIN --defaults-file=$DBCONF &
+    exec sudo $DBBIN --defaults-file=$DBCONF &
     # Create users and set root password
     echo "Waiting for mysql to start."
     sleep 4
@@ -57,13 +113,12 @@ function SetupReplicant {
         else echo "Hmm. Mysqld ping response was this: $DBPING";
     fi
     
+    return 
+
     echo "grant replication slave on *.* to '$REPLUSER'@127.0.0.1 identified by '$REPLPASS'"
     $MYSQLCMD "grant replication slave on *.* to '$REPLUSER'@'127.0.0.1' identified by '$REPLPASS'"
     $MYSQLCMD "FLUSH PRIVILEGES"
 
-
-    
-    
     $MYSQLADM status 
     echo
     
@@ -84,7 +139,7 @@ function SetupReplicant {
 }
 
 
-SetupReplicant "a" 3310 ; 
-SetupReplicant "b" 3311 ; 
+SetupReplicant "a" 3310 3311; 
+SetupReplicant "b" 3311 3310; 
 
 
