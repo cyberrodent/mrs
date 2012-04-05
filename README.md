@@ -9,7 +9,8 @@ Overview
 --------
 The idea is to run 2 (or more) instances of MySql on one machine. The servers will share resources like CPU and RAM and IO. We will do this by having sets of configuration that utelize different TCP ports, unix sockets, data directories users, log files etc. 
 
-
+If you use apparmour then make sure to update the mysqld profile. This is appropriate for the default settings:
+  /opt/mysqlrplay/** rwk
 
 setup-ab-sides.sh
 -----------------

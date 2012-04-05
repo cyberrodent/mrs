@@ -8,7 +8,7 @@ datadir		= %BASE%/data/mysql-%X%
 tmpdir		= %BASE%/tmp/mysql-%X%
 
 skip-external-locking
-bind-address		= 0.0.0.0
+bind-address	= 0.0.0.0
 key_buffer		= 16M
 max_allowed_packet	= 16M
 thread_stack		= 192K
@@ -21,19 +21,30 @@ max_connections        = 100
 query_cache_limit	= 1M
 query_cache_size        = 16M
 # * Logging and Replication
-log_error                = %BASE%/log/%X%-error.log
+log_error   = %BASE%/log/%X%-error.log
 
 server-id   = %PORT%
 log_bin     = %BASE%/data/mysql-%X%/%X%_side_bin.log
+
 expire_logs_days = 10
 max_binlog_size = 100M
 binlog-ignore-db=mysql            
 binlog-ignore-db=test
+
+
+# Data directory, and data file
+innodb_data_home_dir = %BASE%/data/mysql-%X%
+
+
+
 skip-slave-start = true
 report-host=%X%side.local
 
+# master-host = %MASTERHOST%
+# master-user = %MASTERUSER%
+# master-password = %MASTERPASS%
+# master-port = %MASTERPORT%
 
-master-host = %MASTERHOST%
-master-user = %MASTERUSER%
-master-password = %MASTERPASS%
-master-port = %MASTERPORT%
+# Really PKs should come from a tickets db
+auto_increment_increment = %AIINC%
+auto_increment_offset = %AIOFFS%
