@@ -48,9 +48,15 @@ SOCK_BASE=$BASEDIR/socket
 # $BASEDIR/tmp/my-a/
 # $BASEDIR/tmp/my-b/
 TMP_BASE=$BASEDIR/tmp
+# pid files go in here
+RUN_DIR=$BASEDIR/run
 
-mkdir -p $CONF_DIR $DATA_DIR $LOG_BASE $SOCK_BASE $BIN_BASE $TMP_BASE
-chown mysql:mysql $CONF_DIR $DATA_DIR $LOG_BASE $SOCK_BASE $TMP_BASE
+mkdir -p $CONF_DIR $DATA_DIR $LOG_BASE \
+        $SOCK_BASE $BIN_BASE $TMP_BASE \
+        $RUN_DIR
+chown mysql:mysql $CONF_DIR $DATA_DIR $LOG_BASE \
+        $SOCK_BASE $TMP_BASE $RUN_DIR
+
 
 function SetupReplicant {
 
@@ -77,10 +83,8 @@ function SetupReplicant {
     echo
     echo "Creating config $DBCONF:"
 
-    rm -r $TMPCONF
     # Create the configuration file for this mysql
     cp $TEMPLATE $TMPCONF
-
     perl -pi -e 's/%X%/'${X}'/g'  $TMPCONF;
     perl -pi -e 's/%PORT%/'${DBPORT}'/g'  $TMPCONF;
     perl -pi -e 's/%BASE%/'${ESCAPEBASEDIR}'/g'  $TMPCONF;
@@ -88,45 +92,52 @@ function SetupReplicant {
     perl -pi -e 's/%MASTERUSER%/'${MASTERUSER}'/g' $TMPCONF;
     perl -pi -e 's/%MASTERPASS%/'${MASTERPASS}'/g' $TMPCONF;
     perl -pi -e 's/%MASTERPORT%/'${MASTERPORT}'/g' $TMPCONF;
-
     perl -pi -e 's/%AIINC%/'${INCREMENT}'/g' $TMPCONF;
     perl -pi -e 's/%AIOFFS%/'${OFFSET}'/g' $TMPCONF;
     cp $TMPCONF $DBCONF
+    rm $TMPCONF
 
-    chown mysql:mysql $DBCONF
+    echo "Creating Server Directories"
 
-    # Create data directory
+    TMPDIR=$TMP_BASE/$DBSERVER
+    rm -rf $TMPDIR
+    mkdir -p $TMPDIR
+
+    RUNDIR=$RUN_DIR/$DBSERVER
+    rm -rf $RUNDIR
+    mkdir -p $RUNDIR
+
+    # data directory
     DATADIR=$DATA_DIR/$DBSERVER
-    rm -fr $DATADIR
+    rm -rf $DATADIR
     mkdir -p $DATADIR
-    chown mysql:mysql $DATADIR
-    chmod 0700 $DATADIR
+    # chmod 0700 $DATADIR
+
+    chown mysql:mysql $DBCONF $TMPDIR $RUNDIR $DATADIR
+
 
     # Install database
     echo "Running mysql_install_db."
-    echo "mysql_install_db --defaults-file=$DBCONF --user=mysql --datadir=$DATADIR 1>/dev/null"
-    
-    # mysql_install_db --defaults-file=$DBCONF --user=mysql --datadir=$DATADIR 1>/dev/null
-    mysql_install_db --skip-name-resolve --force --defaults-file=$DBCONF --user=mysql --datadir=$DATADIR 
-
+    mysql_install_db --defaults-file=$DBCONF --user=mysql --datadir=$DATADIR 1>/dev/null
 
     # start the server
     echo "Starting the server."
-    $DBBIN --defaults-file=$DBCONF --skip-grant &
-    # Create users and set root password
+    $DBBIN --defaults-file=$DBCONF &
+
     echo "Waiting for mysql to start."
     sleep 4
+
     echo "Ping? Are you awake?"
-    DBPING=`mysqladmin -P $DBPORT -h 127.0.0.1 -u root ping `
-    #  2>/dev/null
+    DBPING=`mysqladmin -P $DBPORT -h 127.0.0.1 -u root ping 2>/dev/null`
     if [ "$DBPING" = "mysqld is alive" ];
         then echo "IT IS ALIVE!";
         else echo "Hmm. Mysqld ping response was this: $DBPING";
     fi
     
-    $MYSQLADM shutdown
-    return 
 
+    echo
+    echo "Creating Replication User"
+    echo 
 
    
 
@@ -149,7 +160,7 @@ function SetupReplicant {
     fi
     
     echo 
-    echo "Finished."
+    echo "Finished with $DBSERVER."
     echo
 }
 

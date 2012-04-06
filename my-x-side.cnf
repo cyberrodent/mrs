@@ -1,13 +1,19 @@
+[client]
+port = %PORT%
+socket = %BASE%/socket/mysqld-%X%.sock
+
 [mysqld]
 
 user		= mysql
-socket		= %BASE%/sockets/mysqld-%X%.sock
-port		= 3310
+socket		= %BASE%/socket/mysqld-%X%.sock
+port		= %PORT%
 basedir		= /usr
 datadir		= %BASE%/data/mysql-%X%
 tmpdir		= %BASE%/tmp/mysql-%X%
+pid-file    = %BASE%/run/mysql-%X%.pid
 
 skip-external-locking
+
 bind-address	= 0.0.0.0
 key_buffer		= 16M
 max_allowed_packet	= 16M
@@ -17,9 +23,11 @@ myisam-recover         = BACKUP
 max_connections        = 100
 #table_cache            = 64
 #thread_concurrency     = 10
+
 # * Query Cache Configuration
 query_cache_limit	= 1M
-query_cache_size        = 16M
+query_cache_size    = 16M
+
 # * Logging and Replication
 log_error   = %BASE%/log/%X%-error.log
 
@@ -36,7 +44,7 @@ binlog-ignore-db=test
 innodb_data_home_dir = %BASE%/data/mysql-%X%
 
 
-
+old_passwords=1
 skip-slave-start = true
 report-host=%X%side.local
 
@@ -48,3 +56,17 @@ report-host=%X%side.local
 # Really PKs should come from a tickets db
 auto_increment_increment = %AIINC%
 auto_increment_offset = %AIOFFS%
+
+
+
+
+
+
+
+
+
+skip-federated
+
+
+
+
