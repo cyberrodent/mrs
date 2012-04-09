@@ -1,15 +1,32 @@
 #!/bin/bash
 
-TEMPLATE="`pwd`/my-x-side.cnf"
-echo "loaded template $TEMPLATE"
-
+# Where our setup scripts and templates are
+INSTALL="/home/jkolber/Project/mysql_repl"
+# Where do our mysqls get set up in
 BASEDIR=/opt/mysqlrplay
+# escape slashed of the BASEDIR
 ESCAPEBASEDIR="\/opt\/mysqlrplay"
+# replication user name
 REPLUSER="ripley"
+# replication user password
 REPLPASS="r3p1icate"
-#
 # Where is the mysqld binary
 DBBIN=/usr/sbin/mysqld
+
+#
+# Nothing to change past here unless you
+# Are really customizing this script
+#
+
+
+# The main my.cnf template
+TEMPLATE="$INSTALL/my-x-side.cnf"
+# startup script template
+START_TPL="$INSTALL/start-n.sh"
+# shutdown script template
+STOP_TPL="$INSTALL/stop-n.sh"
+# tmp file name used when making startup/shutdown scripts
+TMP_INIT="$INSTALL/_tmp_init"
 
 #
 # App layout
@@ -55,9 +72,11 @@ mkdir -p $CONF_DIR $DATA_DIR $LOG_BASE \
         $SOCK_BASE $BIN_BASE $TMP_BASE \
         $RUN_DIR
 chown mysql:mysql $CONF_DIR $DATA_DIR $LOG_BASE \
-        $SOCK_BASE $TMP_BASE $RUN_DIR
+        $SOCK_BASE $TMP_BASE $RUN_DIR \
+        $BIN_BASE 
+chmod 0755 $BIN_BASE $RUN_DIR $LOG_BASE
 
-
+# This is the function that does all the work
 function SetupReplicant {
 
     X=$1
@@ -68,6 +87,8 @@ function SetupReplicant {
 
     DBSERVER="mysql-$1"
     DBCONF=$CONF_DIR/my-$1.cnf
+    STARTUP=$BIN_BASE/start-$X.sh
+    SHUTDOWN=$BIN_BASE/stop-$X.sh
     DBHOST="127.0.0.1"
     MASTERHOST="127.0.0.1"
     MASTERUSER=$REPLUSER
@@ -97,11 +118,24 @@ function SetupReplicant {
     cp $TMPCONF $DBCONF
     rm $TMPCONF
 
+    # Create the startup and shutdown scripts
+    cp $START_TPL $TMP_INIT
+    perl -pi -e 's/%BASE%/'${ESCAPEBASEDIR}'/g' $TMP_INIT
+    perl -pi -e 's/%X%/'${X}'/g' $TMP_INIT
+    cp $TMP_INIT $STARTUP 
+    rm $TMP_INIT
+
+    cp $STOP_TPL $TMP_INIT
+    perl -pi -e 's/%X%/'${X}'/g' $TMP_INIT
+    # perl -pi -e 's/%%/'${AA}'/g' $TMP_INIT
+    cp $TMP_INIT $SHUTDOWN
+    rm $TMP_INIT
+
     echo "Creating Server Directories"
 
     TMPDIR=$TMP_BASE/$DBSERVER
     rm -rf $TMPDIR
-    mkdir -p $TMPDIR
+    mkdir -p $TMPDIR 
 
     RUNDIR=$RUN_DIR/$DBSERVER
     rm -rf $RUNDIR
@@ -115,7 +149,6 @@ function SetupReplicant {
 
     chown mysql:mysql $DBCONF $TMPDIR $RUNDIR $DATADIR
 
-
     # Install database
     echo "Running mysql_install_db."
     mysql_install_db --defaults-file=$DBCONF --user=mysql --datadir=$DATADIR 1>/dev/null
@@ -125,7 +158,7 @@ function SetupReplicant {
     $DBBIN --defaults-file=$DBCONF &
 
     echo "Waiting for mysql to start."
-    sleep 4
+    sleep 3
 
     echo "Ping? Are you awake?"
     DBPING=`mysqladmin -P $DBPORT -h 127.0.0.1 -u root ping 2>/dev/null`
@@ -135,22 +168,17 @@ function SetupReplicant {
     fi
     
 
-    echo
     echo "Creating Replication User"
-    echo 
 
-   
-
-    echo "grant replication slave on *.* to '$REPLUSER'@127.0.0.1 identified by '$REPLPASS'"
+    #  grant replication slave on *.* to '$REPLUSER'@127.0.0.1 identified by '$REPLPASS'
     $MYSQLCMD "grant replication slave on *.* to '$REPLUSER'@'127.0.0.1' identified by '$REPLPASS'"
     $MYSQLCMD "FLUSH PRIVILEGES"
-
-    $MYSQLADM status 
-    echo
+    # $MYSQLADM status 
+    # echo
     
     echo "Shutting down mysqld."
     $MYSQLADM shutdown
-    sleep 4
+    sleep 3
     
     PING=`$MYSQLADM ping 2>/dev/null`
     if [ "$PING" = "mysqld is alive" ]; then
@@ -164,8 +192,11 @@ function SetupReplicant {
     echo
 }
 
-
+echo "Create the A side"
 SetupReplicant "a" 3310 3311 2 1; 
+echo
+echo "and then the B side"
 SetupReplicant "b" 3311 3310 2 2; 
+echo "MM config complete."
 
 
