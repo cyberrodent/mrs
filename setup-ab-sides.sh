@@ -12,7 +12,8 @@ REPLUSER="ripley"
 REPLPASS="r3p1icate"
 # Where is the mysqld binary
 DBBIN=/usr/sbin/mysqld
-
+# How many seconds to wait for mysql to start/stop
+SLEEP_DELAY=3
 #
 # Nothing to change past here unless you
 # Are really customizing this script
@@ -66,15 +67,15 @@ SOCK_BASE=$BASEDIR/socket
 # $BASEDIR/tmp/my-b/
 TMP_BASE=$BASEDIR/tmp
 # pid files go in here
-RUN_DIR=$BASEDIR/run
+RUN_BASE=$BASEDIR/run
 
 mkdir -p $CONF_DIR $DATA_DIR $LOG_BASE \
         $SOCK_BASE $BIN_BASE $TMP_BASE \
-        $RUN_DIR
+        $RUN_BASE
 chown mysql:mysql $CONF_DIR $DATA_DIR $LOG_BASE \
-        $SOCK_BASE $TMP_BASE $RUN_DIR \
+        $SOCK_BASE $TMP_BASE $RUN_BASE \
         $BIN_BASE 
-chmod 0755 $BIN_BASE $RUN_DIR $LOG_BASE
+chmod 0755 $BIN_BASE $RUN_BASE $LOG_BASE
 
 # This is the function that does all the work
 function SetupReplicant {
@@ -99,9 +100,7 @@ function SetupReplicant {
 
     TMPCONF=$BASEDIR/_tmp_conf
 
-    echo
     echo "Starting setup for $DBSERVER"
-    echo
     echo "Creating config $DBCONF:"
 
     # Create the configuration file for this mysql
@@ -137,17 +136,12 @@ function SetupReplicant {
     rm -rf $TMPDIR
     mkdir -p $TMPDIR 
 
-    RUNDIR=$RUN_DIR/$DBSERVER
-    rm -rf $RUNDIR
-    mkdir -p $RUNDIR
-
     # data directory
     DATADIR=$DATA_DIR/$DBSERVER
     rm -rf $DATADIR
     mkdir -p $DATADIR
-    # chmod 0700 $DATADIR
 
-    chown mysql:mysql $DBCONF $TMPDIR $RUNDIR $DATADIR
+    chown mysql:mysql $DBCONF $TMPDIR $DATADIR
 
     # Install database
     echo "Running mysql_install_db."
@@ -158,7 +152,7 @@ function SetupReplicant {
     $DBBIN --defaults-file=$DBCONF &
 
     echo "Waiting for mysql to start."
-    sleep 3
+    sleep $SLEEP_DELAY
 
     echo "Ping? Are you awake?"
     DBPING=`mysqladmin -P $DBPORT -h 127.0.0.1 -u root ping 2>/dev/null`
@@ -178,7 +172,7 @@ function SetupReplicant {
     
     echo "Shutting down mysqld."
     $MYSQLADM shutdown
-    sleep 3
+    sleep $SLEEP_DELAY
     
     PING=`$MYSQLADM ping 2>/dev/null`
     if [ "$PING" = "mysqld is alive" ]; then
@@ -187,16 +181,13 @@ function SetupReplicant {
         echo "mysqld is dead. long live mysqld."
     fi
     
-    echo 
     echo "Finished with $DBSERVER."
     echo
 }
 
-echo "Create the A side"
+
 SetupReplicant "a" 3310 3311 2 1; 
-echo
-echo "and then the B side"
 SetupReplicant "b" 3311 3310 2 2; 
+
 echo "MM config complete."
-
-
+exit 0
