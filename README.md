@@ -28,28 +28,28 @@ It will then
  5. TODO: Optionally it can set the root user password as well.
 
 Default is to setup each mysql under /opt/mysqlrplay with a simple layout:
-├── bin
-│   ├── start-a.sh
-│   ├── start-b.sh
-│   ├── stop-a.sh
-│   └── stop-b.sh
-├── data
-│   ├── mysql-a/
-│   └── mysql-b/
-├── etc
-│   ├── my-a.cnf
-│   └── my-b.cnf
-├── log
-│   ├── a-error.log
-│   └── b-error.log
-├── run
-│   ├── mysql-a.pid
-│   └── mysql-b.pid
-├── socket
-└── tmp
-    ├── mysql-a/
-    └── mysql-b/
-
+    ├── bin
+    │   ├── start-a.sh
+    │   ├── start-b.sh
+    │   ├── stop-a.sh
+    │   └── stop-b.sh
+    ├── data
+    │   ├── mysql-a/
+    │   └── mysql-b/
+    ├── etc
+    │   ├── my-a.cnf
+    │   └── my-b.cnf
+    ├── log
+    │   ├── a-error.log
+    │   └── b-error.log
+    ├── run
+    │   ├── mysql-a.pid
+    │   └── mysql-b.pid
+    ├── socket
+    └── tmp
+        ├── mysql-a/
+        └── mysql-b/
+    
 Start and stop scripts
 -----------------------
 Each configuration will require its own start and stop scripts to make it easy to start and stop that service. These will be called
