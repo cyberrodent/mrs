@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Mrs by cyberrodent</title>
+    
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Mrs</h1>
+        <p>Mysql (Master-Master) Replication Setup </p>
+        <p class="view"><a href="https://github.com/cyberrodent/mrs">View the Project on GitHub <small>cyberrodent/mrs</small></a></p>
+        <ul>
+          <li><a href="https://github.com/cyberrodent/mrs/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/cyberrodent/mrs/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/cyberrodent/mrs">Fork On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>Mrs - MySql Replication Setup</h1>
+
+<p>The purpose of this project is to create a set of shell scripts that can aid in quickly setting up a master-master pair of mysql servers
+on the same machine to aid in development and test environment setups.</p>
+
+<p>Sooner or later this may be converted to a chef recipe.  </p>
+
+<h2>Overview</h2>
+
+<p>The idea is to run 2 (or more) instances of MySql on one machine. The servers will share resources like CPU and RAM and IO. We will do this by having sets of configuration that utelize different TCP ports, unix sockets, data directories users, log files etc. </p>
+
+<p>This uses one mysqld binary.</p>
+
+<h2>Apparmor</h2>
+
+<p>If you use apparmour then make sure to update the mysqld profile. This is appropriate for the default settings:
+  /opt/mysqlrplay/** rwk</p>
+
+<h2>setup-ab-sides.sh</h2>
+
+<p>This script will create a mysql server config file (my-x.cnf for any x)</p>
+
+<p>It will then
+ 1. create a data directory and 
+ 2. run mysql_install_db that that directory as a datadir.<br>
+ 3. Then it will start up that mysql server and 
+ 4. create a replication user with the appropriate grants. 
+ 5. TODO: Optionally it can set the root user password as well.</p>
+
+<p>Default is to setup each mysql under /opt/mysqlrplay with a simple layout:
+    ├── bin
+    │   ├── start-a.sh
+    │   ├── start-b.sh
+    │   ├── stop-a.sh
+    │   └── stop-b.sh
+    ├── data
+    │   ├── mysql-a/
+    │   └── mysql-b/
+    ├── etc
+    │   ├── my-a.cnf
+    │   └── my-b.cnf
+    ├── log
+    │   ├── a-error.log
+    │   └── b-error.log
+    ├── run
+    │   ├── mysql-a.pid
+    │   └── mysql-b.pid
+    ├── socket
+    └── tmp
+        ├── mysql-a/
+        └── mysql-b/</p>
+
+<h2>Start and stop scripts</h2>
+
+<p>Each configuration will require its own start and stop scripts to make it easy to start and stop that service. These will be called
+start-a.sh, stop-a.sh, start-b.sh etc.</p>
+
+<h2>start_mm_pair.sh</h2>
+
+<p>TODO: Assumes 2 running mysql services (a and b) connect to both, show the master status, start the slaves and show the slave status.</p>
+
+<p>That's it so far....more work to do.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/cyberrodent">cyberrodent</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
