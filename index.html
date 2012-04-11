@@ -48,12 +48,13 @@ on the same machine to aid in development and test environment setups.</p>
 <p>This script will create a mysql server config file (my-x.cnf for any x)</p>
 
 <p>It will then
- 1. create a data directory and 
- 2. run mysql_install_db that that directory as a datadir.<br>
- 3. Then it will start up that mysql server and 
- 4. create a replication user with the appropriate grants. 
- 5. TODO: Optionally it can set the root user password as well.</p>
-
+<ol>
+    <li>. create a data directory and </li>
+    <li>. run mysql_install_db that that directory as a datadir.</li>
+    <li>. Then it will start up that mysql server and </li>
+    <li>. create a replication user with the appropriate grants. </li>
+    <li>. TODO: Optionally it can set the root user password as well.</li>
+ </ol>
  <p>Default is to setup each mysql under /opt/mysqlrplay with a simple layout:</p>
  <pre>
     ├── bin
