@@ -87,7 +87,7 @@ function SetupReplicant {
     OFFSET=$5
 
     DBSERVER="mysql-$1"
-    DBCONF=$CONF_DIR/my-$1.cnf
+    DBCONF=$CONF_DIR/my-$1-side.cnf
     STARTUP=$BIN_BASE/start-$X.sh
     SHUTDOWN=$BIN_BASE/stop-$X.sh
     DBHOST="127.0.0.1"
@@ -126,6 +126,7 @@ function SetupReplicant {
 
     cp $STOP_TPL $TMP_INIT
     perl -pi -e 's/%X%/'${X}'/g' $TMP_INIT
+    perl -pi -e 's/%PORT%/'${DBPORT}'/g'  $TMP_INIT;
     # perl -pi -e 's/%%/'${AA}'/g' $TMP_INIT
     cp $TMP_INIT $SHUTDOWN
     rm $TMP_INIT
@@ -165,7 +166,7 @@ function SetupReplicant {
     echo "Creating Replication User"
 
     #  grant replication slave on *.* to '$REPLUSER'@127.0.0.1 identified by '$REPLPASS'
-    $MYSQLCMD "grant replication slave on *.* to '$REPLUSER'@'127.0.0.1' identified by '$REPLPASS'"
+    $MYSQLCMD "GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to '$REPLUSER'@'127.0.0.1' identified by '$REPLPASS'"
     $MYSQLCMD "FLUSH PRIVILEGES"
     # $MYSQLADM status 
     # echo

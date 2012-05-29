@@ -48,10 +48,10 @@ old_passwords=1
 skip-slave-start = true
 report-host=%X%side.local
 
-# master-host = %MASTERHOST%
-# master-user = %MASTERUSER%
-# master-password = %MASTERPASS%
-# master-port = %MASTERPORT%
+master-host = %MASTERHOST%
+master-user = %MASTERUSER%
+master-password = %MASTERPASS%
+master-port = %MASTERPORT%
 
 # Really PKs should come from a tickets db
 auto_increment_increment = %AIINC%
