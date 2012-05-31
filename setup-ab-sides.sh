@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Where our setup scripts and templates are
-INSTALL="/home/jkolber/Project/mysql_repl"
+INSTALL="/Users/jkolber/development/mrs"
 # Where do our mysqls get set up in
 BASEDIR=/opt/mysqlrplay
 # escape slashed of the BASEDIR
@@ -11,7 +11,13 @@ REPLUSER="ripley"
 # replication user password
 REPLPASS="r3p1icate"
 # Where is the mysqld binary
-DBBIN=/usr/sbin/mysqld
+# DBBIN=/usr/sbin/mysqld
+DBBIN=/usr/local/mysql/bin/mysqld
+MYBIN=/usr/local/mysql/bin/mysql
+DBADMINBIN=/usr/local/mysql/bin/mysqladmin
+INSTALLDBBIN=/usr/local/mysql-5.5.19-osx10.5-x86_64/scripts/mysql_install_db;
+MYUSER="_mysql"
+MYGROUP="_mysql"
 # How many seconds to wait for mysql to start/stop
 SLEEP_DELAY=3
 #
@@ -69,10 +75,10 @@ TMP_BASE=$BASEDIR/tmp
 # pid files go in here
 RUN_BASE=$BASEDIR/run
 
-mkdir -p $CONF_DIR $DATA_DIR $LOG_BASE \
+mkdir -p $BASEDIR $CONF_DIR $DATA_DIR $LOG_BASE \
         $SOCK_BASE $BIN_BASE $TMP_BASE \
         $RUN_BASE
-chown mysql:mysql $CONF_DIR $DATA_DIR $LOG_BASE \
+chown $MYUSER:$MYGROUP $CONF_DIR $DATA_DIR $LOG_BASE \
         $SOCK_BASE $TMP_BASE $RUN_BASE \
         $BIN_BASE 
 chmod 0755 $BIN_BASE $RUN_BASE $LOG_BASE
@@ -95,8 +101,8 @@ function SetupReplicant {
     MASTERUSER=$REPLUSER
     MASTERPASS=$REPLPASS
 
-    MYSQLCMD="/usr/bin/mysql -u root -h $DBHOST -P $DBPORT -e"
-    MYSQLADM="/usr/bin/mysqladmin -u root -h $DBHOST -P $DBPORT"
+    MYSQLCMD="${MYBIN} -u root -h $DBHOST -P $DBPORT -e"
+    MYSQLADM="${DBADMINBIN} -u root -h $DBHOST -P $DBPORT"
 
     TMPCONF=$BASEDIR/_tmp_conf
 
@@ -121,6 +127,9 @@ function SetupReplicant {
     cp $START_TPL $TMP_INIT
     perl -pi -e 's/%BASE%/'${ESCAPEBASEDIR}'/g' $TMP_INIT
     perl -pi -e 's/%X%/'${X}'/g' $TMP_INIT
+    perl -pi -e 's/%MYUSER%/'${MYUSER}'/g' $TMP_INIT
+    # slashes in this path so use alternative pattern delimiter {} 
+    perl -pi -e 's{%DBBIN%}{'${DBBIN}'}g' $TMP_INIT
     cp $TMP_INIT $STARTUP 
     rm $TMP_INIT
 
@@ -142,21 +151,25 @@ function SetupReplicant {
     rm -rf $DATADIR
     mkdir -p $DATADIR
 
-    chown mysql:mysql $DBCONF $TMPDIR $DATADIR
+    chown ${MYUSER}:${MYGROUP} $DBCONF $TMPDIR $DATADIR
 
     # Install database
     echo "Running mysql_install_db."
-    mysql_install_db --defaults-file=$DBCONF --user=mysql --datadir=$DATADIR 1>/dev/null
+
+    ${INSTALLDBBIN} --defaults-file=$DBCONF --basedir=/usr/local/mysql --user=$MYUSER --datadir=$DATADIR 1>/dev/null
+
+
+
 
     # start the server
     echo "Starting the server."
-    $DBBIN --defaults-file=$DBCONF &
+    $DBBIN --defaults-file=$DBCONF --user=$MYUSER &
 
     echo "Waiting for mysql to start."
     sleep $SLEEP_DELAY
 
     echo "Ping? Are you awake?"
-    DBPING=`mysqladmin -P $DBPORT -h 127.0.0.1 -u root ping 2>/dev/null`
+    DBPING=`${DBADMINBIN} -P $DBPORT -h 127.0.0.1 -u root ping 2>/dev/null`
     if [ "$DBPING" = "mysqld is alive" ];
         then echo "IT IS ALIVE!";
         else echo "Hmm. Mysqld ping response was this: $DBPING";
@@ -166,6 +179,7 @@ function SetupReplicant {
     echo "Creating Replication User"
 
     #  grant replication slave on *.* to '$REPLUSER'@127.0.0.1 identified by '$REPLPASS'
+    echo "$MYSQLCMD \"GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to '$REPLUSER'@'127.0.0.1' identified by '$REPLPASS'\""
     $MYSQLCMD "GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to '$REPLUSER'@'127.0.0.1' identified by '$REPLPASS'"
     $MYSQLCMD "FLUSH PRIVILEGES"
     # $MYSQLADM status 
@@ -185,7 +199,6 @@ function SetupReplicant {
     echo "Finished with $DBSERVER."
     echo
 }
-
 
 SetupReplicant "a" 3310 3311 2 1; 
 SetupReplicant "b" 3311 3310 2 2; 

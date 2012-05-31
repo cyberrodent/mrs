@@ -1,4 +1,4 @@
 #!/bin/sh
 
 #  start
-mysqld --defaults-file=%BASE%/etc/my-%X%-side.cnf &
+%DBBIN% --defaults-file=%BASE%/etc/my-%X%-side.cnf --user=%MYUSER% &
